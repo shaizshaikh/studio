@@ -1,7 +1,9 @@
+
 import { getArticleBySlug, getArticles } from '@/lib/articles';
 import type { Article } from '@/lib/types';
 import { TagBadge } from '@/components/articles/TagBadge';
 import { RelatedArticles } from '@/components/articles/RelatedArticles';
+import { ArticleSummary } from '@/components/articles/ArticleSummary';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { CalendarDays, Tags, ChevronLeft } from 'lucide-react';
@@ -98,7 +100,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
       )}
       
-      {/* Prose styles for Tailwind Typography would be great here, but for simplicity, direct styling */}
       <div 
         className="prose prose-lg dark:prose-invert max-w-none 
                    prose-headings:font-semibold prose-headings:text-foreground 
@@ -108,8 +109,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         dangerouslySetInnerHTML={{ __html: article.htmlContent }} 
       />
 
+      <ArticleSummary articleContent={article.htmlContent} />
+
       <RelatedArticles 
-        currentArticleContent={article.htmlContent} // or just excerpt/summary for brevity
+        currentArticleContent={article.htmlContent} 
         currentArticleTags={article.tags} 
       />
     </article>
