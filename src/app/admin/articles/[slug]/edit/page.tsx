@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react"; // Changed from react-dom
+import { useFormStatus } from "react-dom"; // useFormStatus remains in react-dom
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -69,8 +70,8 @@ export default function EditArticlePage({ params }: EditArticlePageProps) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   
-  const [formState, formAction] = useFormState(
-    updateArticleAction.bind(null, params.slug), // Bind currentSlug to the action
+  const [formState, formAction] = useActionState( // Changed to useActionState
+    updateArticleAction.bind(null, params.slug), 
     initialState
   );
   
@@ -79,7 +80,7 @@ export default function EditArticlePage({ params }: EditArticlePageProps) {
 
   const form = useForm<EditArticleFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { // Will be overridden by fetched article data
+    defaultValues: { 
       title: "",
       slug: "",
       date: "",
@@ -117,7 +118,7 @@ export default function EditArticlePage({ params }: EditArticlePageProps) {
       } catch (error) {
         console.error("Failed to fetch article:", error);
         toast({ variant: "destructive", title: "Error", description: "Failed to load article data." });
-        setNotFound(true); // Treat as not found on error
+        setNotFound(true); 
       } finally {
         setLoading(false);
       }

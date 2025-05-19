@@ -140,14 +140,118 @@ export async function getArticles(): Promise<Article[]> {
       date: 'desc',
     },
   });
-  return articlesFromDb.map(article => ({
+  const dbArticles = articlesFromDb.map(article => ({
     ...article,
-    date: article.date.toISOString().split('T')[0], 
+    date: article.date.toISOString().split('T')[0],
   }));
+
+  // --- TEMPORARY FAKE ARTICLE ---
+  const fakeArticleRawContent = `
+# My First Fake Article!
+
+Welcome to this demonstration article. This content is written in **Markdown** and processed into HTML.
+
+## Features You Can Use
+
+*   Lists like this one
+    *   And nested lists too!
+*   **Bold text** and *italic text*.
+*   \`Inline code snippets\` using backticks.
+*   ~~Strikethrough text~~ for fun.
+
+### Links and Images
+
+You can easily add links:
+[Visit Next.js Official Site](https://nextjs.org)
+
+And images (using a placeholder here):
+![Placeholder Image for Tech](https://placehold.co/600x300.png)
+*This image has an alt text.*
+
+### Code Blocks
+\`\`\`javascript
+function greet(name) {
+  console.log(\`Hello, \${name}!\`);
+}
+greet('DevOps Digest Reader');
+\`\`\`
+
+This is a great way to quickly test the display of your blog.
+  `;
+
+  const fakeArticle: Article = {
+    id: 'temp-fake-article-id-001',
+    slug: 'my-first-fake-article',
+    title: 'My First Fake Article: A Journey into Mock Data',
+    date: new Date().toISOString().split('T')[0], // Today's date
+    tags: ['testing', 'fake-data', 'example', 'markdown'],
+    excerpt: 'This is a short excerpt for the fake article, demonstrating how it looks when listed with other articles. It shows off Markdown capabilities.',
+    rawContent: fakeArticleRawContent.trim(),
+    htmlContent: markdownToHtml(fakeArticleRawContent.trim()),
+    image: 'https://placehold.co/800x450.png',
+    imageHint: 'abstract data',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Prepend the fake article to the list so it appears first
+  return [fakeArticle, ...dbArticles];
+  // --- END TEMPORARY FAKE ARTICLE ---
 }
 
 // Fetch a single article by slug from the database
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  // --- Check if the requested slug is our fake article ---
+  if (slug === 'my-first-fake-article') {
+    const fakeArticleRawContent = `
+# My First Fake Article!
+
+Welcome to this demonstration article. This content is written in **Markdown** and processed into HTML.
+
+## Features You Can Use
+
+*   Lists like this one
+    *   And nested lists too!
+*   **Bold text** and *italic text*.
+*   \`Inline code snippets\` using backticks.
+*   ~~Strikethrough text~~ for fun.
+
+### Links and Images
+
+You can easily add links:
+[Visit Next.js Official Site](https://nextjs.org)
+
+And images (using a placeholder here):
+![Placeholder Image for Tech](https://placehold.co/600x300.png)
+*This image has an alt text.*
+
+### Code Blocks
+\`\`\`javascript
+function greet(name) {
+  console.log(\`Hello, \${name}!\`);
+}
+greet('DevOps Digest Reader');
+\`\`\`
+
+This is a great way to quickly test the display of your blog.
+    `;
+    return {
+      id: 'temp-fake-article-id-001',
+      slug: 'my-first-fake-article',
+      title: 'My First Fake Article: A Journey into Mock Data',
+      date: new Date().toISOString().split('T')[0],
+      tags: ['testing', 'fake-data', 'example', 'markdown'],
+      excerpt: 'This is a short excerpt for the fake article, demonstrating how it looks when listed with other articles. It shows off Markdown capabilities.',
+      rawContent: fakeArticleRawContent.trim(),
+      htmlContent: markdownToHtml(fakeArticleRawContent.trim()),
+      image: 'https://placehold.co/800x450.png',
+      imageHint: 'abstract data',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+  // --- END FAKE ARTICLE CHECK ---
+
   const articleFromDb = await prisma.article.findUnique({
     where: { slug },
   });
@@ -171,8 +275,11 @@ export async function getAllTags(): Promise<string[]> {
   });
 
   const allTagsSet = new Set<string>();
+  // Add tags from the fake article as well
+  ['testing', 'fake-data', 'example', 'markdown'].forEach(tag => allTagsSet.add(tag));
+  
   articlesWithTags.forEach(article => {
-    if (Array.isArray(article.tags)) { // Ensure tags is an array
+    if (Array.isArray(article.tags)) { 
         article.tags.forEach(tag => allTagsSet.add(tag));
     }
   });

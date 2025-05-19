@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react"; // Changed from react-dom
+import { useFormStatus } from "react-dom"; // useFormStatus remains in react-dom
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -56,7 +57,7 @@ function SubmitButton() {
 export default function NewArticlePage() {
   const { toast } = useToast();
   const router = useRouter();
-  const [formState, formAction] = useFormState(createArticleAction, initialState);
+  const [formState, formAction] = useActionState(createArticleAction, initialState); // Changed to useActionState
   const [markdownContent, setMarkdownContent] = useState("");
   const [htmlPreview, setHtmlPreview] = useState("");
 
@@ -288,5 +289,3 @@ export default function NewArticlePage() {
     </Card>
   );
 }
-
-    
