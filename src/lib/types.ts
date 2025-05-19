@@ -1,5 +1,6 @@
 
 export interface Article {
+  id: string; // Added by database
   slug: string;
   title: string;
   date: string; // ISO string format e.g. "2023-10-26"
@@ -9,6 +10,8 @@ export interface Article {
   htmlContent: string; // Pre-rendered HTML content from Markdown
   image?: string; // Optional image URL for the article
   imageHint?: string; // Optional AI hint for placeholder image
+  createdAt: Date; // Added by database
+  updatedAt: Date; // Added by database
 }
 
 // For form handling, tags might be a string initially
@@ -23,5 +26,3 @@ export interface ArticleFormData {
   image?: string;
   imageHint?: string;
 }
-
-    
