@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -18,7 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { createArticle, ArticleFormData } from "@/lib/articles"; // Assuming createArticle is in lib/articles
+import { createArticleAction, CreateArticleState } from "@/app/actions/articleActions";
+import { markdownToHtml } from "@/lib/articles"; // For client-side preview
+import type { ArticleFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
@@ -28,16 +32,33 @@ const formSchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date format." }),
   tags: z.string().min(1, { message: "Please add at least one tag." }), // Comma-separated
   excerpt: z.string().min(10, { message: "Excerpt must be at least 10 characters." }).max(300, { message: "Excerpt must be at most 300 characters."}),
-  content: z.string().min(50, { message: "Content must be at least 50 characters." }), // Markdown content
-  image: z.string().url({ message: "Please enter a valid URL for the image." }).optional().or(z.literal('')),
+  content: z.string().min(50, { message: "Content must be at least 50 characters." }),
+  image: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   imageHint: z.string().optional(),
 });
 
 type NewArticleFormValues = z.infer<typeof formSchema>;
 
+const initialState: CreateArticleState = {
+  message: "",
+  success: false,
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending} className="w-full md:w-auto">
+      {pending ? "Creating..." : "Create Article"}
+    </Button>
+  );
+}
+
 export default function NewArticlePage() {
   const { toast } = useToast();
   const router = useRouter();
+  const [formState, formAction] = useFormState(createArticleAction, initialState);
+  const [markdownContent, setMarkdownContent] = useState("");
+  const [htmlPreview, setHtmlPreview] = useState("");
 
   const defaultDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -55,51 +76,52 @@ export default function NewArticlePage() {
     },
   });
 
-  async function onSubmit(values: NewArticleFormValues) {
-    try {
-      // Convert form values to ArticleFormData structure
-      const articleData: ArticleFormData = {
-        title: values.title,
-        slug: values.slug,
-        date: values.date,
-        tags: values.tags, // Will be split in createArticle
-        excerpt: values.excerpt,
-        content: values.content, // This is Markdown content
-        image: values.image || undefined, // Ensure undefined if empty
-        imageHint: values.imageHint || undefined,
-      };
-
-      const newArticle = await createArticle(articleData); // This now saves in memory
-      
-      toast({
-        title: "Article Created!",
-        description: `"${newArticle.title}" has been successfully created.`,
-      });
-      router.push(`/articles/${newArticle.slug}`); // Navigate to the new article
-      // Optionally, navigate to admin articles list: router.push('/admin/articles');
-    } catch (error) {
-      let errorMessage = "An unexpected error occurred.";
-      if (error instanceof Error) {
-        errorMessage = error.message;
+  useEffect(() => {
+    if (formState.message) {
+      if (formState.success) {
+        toast({
+          title: "Article Created!",
+          description: formState.message,
+        });
+        if (formState.newArticleSlug) {
+          router.push(`/articles/${formState.newArticleSlug}`);
+        } else {
+          router.push('/admin/articles');
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error Creating Article",
+          description: formState.message,
+        });
+        // Populate form errors from formState
+        if (formState.errors) {
+          for (const [fieldName, errors] of Object.entries(formState.errors)) {
+            if (errors && errors.length > 0) {
+              form.setError(fieldName as keyof NewArticleFormValues, { type: "server", message: errors.join(', ') });
+            }
+          }
+        }
       }
-      console.error("Failed to create article:", error);
-      toast({
-        variant: "destructive",
-        title: "Error Creating Article",
-        description: errorMessage,
-      });
     }
-  }
+  }, [formState, toast, router, form]);
 
-  // Auto-generate slug from title
   const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const title = event.target.value;
-    form.setValue("title", title);
+    form.setValue("title", title, { shouldValidate: true });
     const slug = title
       .toLowerCase()
+      .trim()
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/[^\w-]+/g, ''); // Remove non-alphanumeric characters except hyphens
-    form.setValue("slug", slug);
+    form.setValue("slug", slug, { shouldValidate: true });
+  };
+  
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const mdContent = event.target.value;
+    form.setValue("content", mdContent, { shouldValidate: true });
+    setMarkdownContent(mdContent);
+    setHtmlPreview(markdownToHtml(mdContent));
   };
 
 
@@ -107,11 +129,12 @@ export default function NewArticlePage() {
     <Card>
       <CardHeader>
         <CardTitle>Create New Article</CardTitle>
-        <CardDescription>Fill in the details for your new blog post.</CardDescription>
+        <CardDescription>Fill in the details for your new blog post. Use Markdown for content.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* We use a form element with the action attribute for Server Actions */}
+          <form action={formAction} className="space-y-8">
             <FormField
               control={form.control}
               name="title"
@@ -121,7 +144,6 @@ export default function NewArticlePage() {
                   <FormControl>
                     <Input placeholder="Enter article title" {...field} onChange={handleTitleChange} />
                   </FormControl>
-                  <FormDescription>The main title of your article.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -141,35 +163,37 @@ export default function NewArticlePage() {
                 </FormItem>
               )}
             />
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Publication Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Publication Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <Input placeholder="kubernetes, devops, cloud" {...field} />
-                  </FormControl>
-                  <FormDescription>Comma-separated list of tags.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <FormControl>
+                      <Input placeholder="kubernetes, devops, cloud" {...field} />
+                    </FormControl>
+                    <FormDescription>Comma-separated list of tags.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -190,61 +214,79 @@ export default function NewArticlePage() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content (Markdown)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Write your article content here using Markdown..."
-                      className="resize-y min-h-[200px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>The main body of your article. Use Markdown for formatting.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Main Image URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://example.com/image.png" {...field} />
-                  </FormControl>
-                  <FormDescription>URL for the article's main image. Use https://placehold.co for placeholders.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Content (Markdown)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Write your article content here using Markdown..."
+                        className="resize-y min-h-[300px] lg:min-h-[400px] font-mono"
+                        {...field}
+                        onChange={handleContentChange} // Use custom handler
+                        value={form.watch('content')} // Ensure Textarea updates with form state
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="space-y-2">
+                <FormLabel>Markdown Preview</FormLabel>
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none p-4 border rounded-md min-h-[300px] lg:min-h-[400px] bg-muted/50 overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: htmlPreview || "<p class='text-muted-foreground'>Preview will appear here...</p>" }}
+                />
+              </div>
+            </div>
             
-            <FormField
-              control={form.control}
-              name="imageHint"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image AI Hint (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., technology abstract" {...field} />
-                  </FormControl>
-                  <FormDescription>One or two keywords for AI placeholder image generation (if applicable).</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid md:grid-cols-2 gap-6">
+                <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Main Image URL (Optional)</FormLabel>
+                    <FormControl>
+                        <Input type="url" placeholder="https://example.com/image.png" {...field} />
+                    </FormControl>
+                    <FormDescription>URL for the article's main image. Use https://placehold.co for placeholders.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                
+                <FormField
+                control={form.control}
+                name="imageHint"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Image AI Hint (Optional)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., technology abstract" {...field} />
+                    </FormControl>
+                    <FormDescription>One or two keywords for AI placeholder image generation (if applicable).</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
 
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Creating..." : "Create Article"}
-            </Button>
+            <SubmitButton />
+            {formState?.message && !formState.success && (
+              <p className="text-sm font-medium text-destructive">{formState.message}</p>
+            )}
+             {formState?.message && formState.success && (
+              <p className="text-sm font-medium text-green-600">{formState.message}</p>
+            )}
           </form>
         </Form>
       </CardContent>
     </Card>
   );
 }
+
+    

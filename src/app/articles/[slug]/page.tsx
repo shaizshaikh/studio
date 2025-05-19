@@ -1,9 +1,8 @@
 
-import { getArticleBySlug, getArticles } from '@/lib/articles';
+import { getArticleBySlug, getArticles, markdownToHtml } from '@/lib/articles';
 import type { Article } from '@/lib/types';
 import { TagBadge } from '@/components/articles/TagBadge';
 import { RelatedArticles } from '@/components/articles/RelatedArticles';
-// Removed ArticleSummary import
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { CalendarDays, Tags, ChevronLeft } from 'lucide-react';
@@ -18,6 +17,7 @@ interface ArticlePageProps {
 }
 
 export async function generateStaticParams() {
+  // TODO: When using a DB, fetch slugs from the DB
   const articles = await getArticles();
   return articles.map(article => ({
     slug: article.slug,
@@ -38,23 +38,25 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     headline: article.title,
     image: article.image ? [article.image] : undefined,
     datePublished: article.date,
-    author: { // Assuming a generic author for now
-      '@type': 'Organization',
-      name: 'DevOps Digest',
+    author: { 
+      '@type': 'Organization', // Or 'Person' if you add author details
+      name: 'DevOps Digest', // Replace with actual author name or site name
     },
     publisher: {
         '@type': 'Organization',
         name: 'DevOps Digest',
         logo: {
             '@type': 'ImageObject',
-            url: 'https://placehold.co/600x60.png/FFFFFF/000000?text=DevOps+Digest+Logo' // Replace with actual logo URL
+            // TODO: Replace with your actual logo URL
+            url: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/images/logo.png` : 'https://placehold.co/600x60.png/FFFFFF/000000?text=DevOps+Digest+Logo' 
         }
     },
     description: article.excerpt,
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': typeof window !== 'undefined' ? `${window.location.origin}/articles/${article.slug}` : `/articles/${article.slug}`, // Use a placeholder or ensure base URL is available
+      '@id': process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : `/articles/${article.slug}`,
     },
+    articleBody: article.rawContent, // Add raw content for SEO
   };
 
   return {
@@ -64,17 +66,18 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     openGraph: article.image ? {
       title: article.title,
       description: article.excerpt,
+      url: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : undefined,
       images: [
         {
           url: article.image,
-          width: 1200,
-          height: 630,
+          width: 1200, // Standard OG image width
+          height: 630, // Standard OG image height
           alt: article.title,
         },
       ],
       type: 'article',
       publishedTime: article.date,
-      authors: ['DevOps Digest'], // Generic author
+      authors: ['DevOps Digest'], // Or specific author if available
       tags: article.tags,
     } : undefined,
     twitter: {
@@ -82,9 +85,11 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       title: article.title,
       description: article.excerpt,
       images: article.image ? [article.image] : undefined,
+      // site: '@yourTwitterHandle', // Optional: Your Twitter handle
+      // creator: '@authorTwitterHandle', // Optional: Author's Twitter handle
     },
     alternates: {
-      canonical: `/articles/${article.slug}`,
+      canonical: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : `/articles/${article.slug}`,
     },
     other: {
       structuredData: JSON.stringify(structuredData),
@@ -99,14 +104,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  // Access structured data if needed for <script> tag, though metadata API handles it
+  // Ensure htmlContent is available, generate if necessary (though getArticleBySlug should handle this)
+  const finalHtmlContent = article.htmlContent || markdownToHtml(article.rawContent);
+
   const metadataResult = await generateMetadata({ params });
   const structuredDataString = (metadataResult.other as { structuredData: string })?.structuredData;
 
 
   return (
     <article className="max-w-3xl mx-auto py-8">
-      {/* Include JSON-LD structured data */}
       {structuredDataString && (
         <script
           type="application/ld+json"
@@ -147,9 +153,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             src={article.image}
             alt={article.title}
             width={800}
-            height={450} // 16:9 aspect ratio for 800px width
+            height={450} 
             className="w-full object-cover"
-            priority // Prioritize loading of the main article image
+            priority 
             data-ai-hint={article.imageHint || 'technology blog'}
           />
         </div>
@@ -161,15 +167,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                    prose-p:text-foreground/90 prose-a:text-primary hover:prose-a:text-primary/80
                    prose-strong:text-foreground prose-ul:list-disc prose-ol:list-decimal
                    prose-li:my-1 prose-img:rounded-md prose-img:shadow-md"
-        dangerouslySetInnerHTML={{ __html: article.htmlContent }} 
+        dangerouslySetInnerHTML={{ __html: finalHtmlContent }} 
       />
 
-      {/* Removed ArticleSummary component */}
-
       <RelatedArticles 
-        currentArticleContent={article.htmlContent} 
+        currentArticleContent={finalHtmlContent} 
         currentArticleTags={article.tags} 
       />
     </article>
   );
 }
+
+    
