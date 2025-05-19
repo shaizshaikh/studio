@@ -3,4 +3,4 @@ import { config } from 'dotenv';
 config();
 
 import '@/ai/flows/suggest-related-articles.ts';
-import '@/ai/flows/summarize-article-flow.ts';
+// Removed import for summarize-article-flow.ts
