@@ -35,10 +35,11 @@ export default function ManageArticlesPage() {
       const fetchedArticles = await getArticles();
       setArticles(fetchedArticles);
     } catch (error) {
+      console.error("Error loading articles:", error);
       toast({
         variant: "destructive",
         title: "Error loading articles",
-        description: "Could not fetch the list of articles.",
+        description: "Could not fetch the list of articles. Check console for errors.",
       });
     } finally {
       setLoading(false);
@@ -47,7 +48,7 @@ export default function ManageArticlesPage() {
 
   useEffect(() => {
     fetchArticles();
-  }, [toast]); // Re-fetch on toast change is not ideal, but simple for now. Better: trigger manually or use router events.
+  }, []); // Removed toast from dependency array, fetch only on mount or manual refresh
 
   const handleDeleteArticle = async (slug: string, title: string) => {
     startTransition(async () => {
@@ -62,7 +63,7 @@ export default function ManageArticlesPage() {
     });
   };
 
-  if (loading && articles.length === 0) { // Show loading only on initial load or when empty
+  if (loading && articles.length === 0) { 
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between">
@@ -101,7 +102,7 @@ export default function ManageArticlesPage() {
         </CardHeader>
         <CardContent>
           {articles.length === 0 && !loading ? (
-            <p className="text-muted-foreground">No articles found. Get started by creating one!</p>
+            <p className="text-center text-muted-foreground py-10">No articles found. Get started by creating one!</p>
           ) : (
             <Table>
               <TableHeader>
@@ -114,7 +115,7 @@ export default function ManageArticlesPage() {
               </TableHeader>
               <TableBody>
                 {articles.map((article) => (
-                  <TableRow key={article.slug}>
+                  <TableRow key={article.id}>
                     <TableCell className="font-medium">{article.title}</TableCell>
                     <TableCell>{new Date(article.date).toLocaleDateString()}</TableCell>
                     <TableCell className="truncate max-w-xs">{article.tags.join(', ')}</TableCell>
@@ -143,7 +144,7 @@ export default function ManageArticlesPage() {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel> 
                             <AlertDialogAction 
                               onClick={() => handleDeleteArticle(article.slug, article.title)}
                               disabled={isPending}
