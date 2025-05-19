@@ -1,28 +1,25 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  // Attempt to use only the OpenSSL 3.0.x engine
+  binaryTargets = ["debian-openssl-3.0.x"]
 }
 
 model Article {
   id          String   @id @default(cuid())
   slug        String   @unique
   title       String
-  date        DateTime // Publication date
+  date        DateTime
   tags        String[]
   excerpt     String
-  rawContent  String   @db.Text // Use Text for potentially long content
-  htmlContent String   @db.Text // Store rendered HTML
+  rawContent  String   @db.Text
+  htmlContent String   @db.Text
   image       String?
   imageHint   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@index([date])
 }
