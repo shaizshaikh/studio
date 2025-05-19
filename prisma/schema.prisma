@@ -7,8 +7,10 @@ datasource db {
 }
 
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library" // Attempt to use the library engine
+  provider      = "prisma-client-js"
+  // Common binary targets for development and CI/CD environments.
+  // When using Data Proxy at runtime, the specific local binary isn't critical for that runtime.
+  binaryTargets = ["native", "linux-musl"]
 }
 
 model Article {

@@ -10,8 +10,8 @@ declare global {
 const prisma =
   global.prisma ||
   new PrismaClient({
-    // Optional: log Prisma queries
-    // log: ['query', 'info', 'warn', 'error'],
+    // Optional: log Prisma queries if needed for debugging
+    // log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : [],
   });
 
 if (process.env.NODE_ENV !== 'production') {
