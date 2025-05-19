@@ -1,7 +1,29 @@
-import type { Article } from './types';
+import type { Article, ArticleFormData } from './types';
 
-// Mock data - in a real app, this would come from Markdown files
-const articles: Article[] = [
+// Helper to convert Markdown to simple HTML (very basic for now)
+// In a real app, you'd use a robust Markdown parser like 'marked' or 'react-markdown' for rendering
+function markdownToHtml(markdown: string): string {
+  return markdown
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('# ')) return `<h1 class="text-3xl font-bold mb-4">${line.substring(2)}</h1>`;
+      if (line.startsWith('## ')) return `<h2 class="text-2xl font-semibold mt-6 mb-3">${line.substring(3)}</h2>`;
+      if (line.startsWith('### ')) return `<h3 class="text-xl font-semibold mt-4 mb-2">${line.substring(4)}</h3>`;
+      if (line.trim() === '') return '';
+      // Basic image handling: ![alt](src)
+      const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
+      line = line.replace(imgRegex, (match, alt, src) => {
+        // For placeholder images, try to extract a hint if not provided
+        const aiHint = src.includes('placehold.co') ? 'placeholder image' : 'article image';
+        return `<img src="${src}" alt="${alt}" class="my-6 rounded-lg shadow-md" data-ai-hint="${aiHint}" />`;
+      });
+      return `<p class="mb-4">${line}</p>`;
+    })
+    .join('');
+}
+
+// Mock data - in a real app, this would come from a database or Markdown files
+let articles: Article[] = [
   {
     slug: 'getting-started-with-kubernetes',
     title: 'Getting Started with Kubernetes: A Beginner\'s Guide',
@@ -146,4 +168,65 @@ export async function getAllTags(): Promise<string[]> {
     return acc;
   }, [] as string[]);
   return allTags.sort();
+}
+
+export async function createArticle(articleData: ArticleFormData): Promise<Article> {
+  // IMPORTANT: This is an in-memory implementation for demonstration.
+  // In a real app, this would interact with a database or file system.
+  const newArticle: Article = {
+    ...articleData,
+    tags: articleData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+    htmlContent: markdownToHtml(articleData.content), // Convert Markdown to HTML
+  };
+
+  // Check for duplicate slugs (simple check for in-memory)
+  if (articles.some(a => a.slug === newArticle.slug)) {
+    throw new Error(`Article with slug "${newArticle.slug}" already exists.`);
+  }
+
+  articles.unshift(newArticle); // Add to the beginning of the array
+  return newArticle;
+}
+
+// Placeholder for updateArticle, to be implemented later
+export async function updateArticle(slug: string, articleData: Partial<ArticleFormData>): Promise<Article | undefined> {
+  const articleIndex = articles.findIndex(a => a.slug === slug);
+  if (articleIndex === -1) {
+    return undefined;
+  }
+
+  const existingArticle = articles[articleIndex];
+  const updatedArticle = { ...existingArticle } as Article;
+
+  if (articleData.title) updatedArticle.title = articleData.title;
+  if (articleData.date) updatedArticle.date = articleData.date;
+  if (articleData.excerpt) updatedArticle.excerpt = articleData.excerpt;
+  if (articleData.image) updatedArticle.image = articleData.image;
+  if (articleData.imageHint) updatedArticle.imageHint = articleData.imageHint;
+  
+  if (articleData.tags) {
+    updatedArticle.tags = articleData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+  }
+  if (articleData.content) {
+    updatedArticle.htmlContent = markdownToHtml(articleData.content);
+  }
+  // Slug change is more complex, usually not allowed or handled with redirects.
+  // For now, if slug changes, we'll update it, but this might break links.
+  if (articleData.slug && articleData.slug !== existingArticle.slug) {
+     if (articles.some(a => a.slug === articleData.slug && a.slug !== existingArticle.slug)) {
+        throw new Error(`Article with slug "${articleData.slug}" already exists.`);
+    }
+    updatedArticle.slug = articleData.slug;
+  }
+
+
+  articles[articleIndex] = updatedArticle;
+  return updatedArticle;
+}
+
+// Placeholder for deleteArticle, to be implemented later
+export async function deleteArticle(slug: string): Promise<boolean> {
+  const initialLength = articles.length;
+  articles = articles.filter(a => a.slug !== slug);
+  return articles.length < initialLength;
 }

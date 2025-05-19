@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { BookMarked } from 'lucide-react';
+import { BookMarked, Cog } from 'lucide-react'; // Added Cog for admin link
+import { Button } from '@/components/ui/button'; // For admin button styling
 
 export function Header() {
   return (
@@ -10,7 +11,14 @@ export function Header() {
           <BookMarked className="h-7 w-7" />
           DevOps Digest
         </Link>
-        <DarkModeToggle />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild aria-label="Admin Panel">
+            <Link href="/admin">
+              <Cog className="h-5 w-5" />
+            </Link>
+          </Button>
+          <DarkModeToggle />
+        </div>
       </div>
     </header>
   );
