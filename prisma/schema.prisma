@@ -7,10 +7,8 @@ datasource db {
 }
 
 generator client {
-  provider      = "prisma-client-js"
-  // Attempt to use linux-musl which is often more self-contained
-  // and might avoid issues with specific OpenSSL versions in restricted environments.
-  binaryTargets = ["linux-musl"]
+  provider   = "prisma-client-js"
+  engineType = "library" // Attempt to use the library engine
 }
 
 model Article {
