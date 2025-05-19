@@ -1,12 +1,16 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider      = "prisma-client-js"
-  // Attempt to use only the OpenSSL 3.0.x engine
-  binaryTargets = ["debian-openssl-3.0.x"]
+  // Explicitly set binaryTargets to try and find a compatible engine for the environment
+  // Using only linux-musl as a last resort attempt for environments missing specific OpenSSL versions.
+  binaryTargets = ["linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Article {
@@ -15,11 +19,12 @@ model Article {
   title       String
   date        DateTime
   tags        String[]
-  excerpt     String
-  rawContent  String   @db.Text
-  htmlContent String   @db.Text
+  excerpt     String   @db.Text
+  rawContent  String   @db.Text // Storing raw Markdown content
+  htmlContent String   @db.Text // Storing HTML generated from Markdown
   image       String?
   imageHint   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
