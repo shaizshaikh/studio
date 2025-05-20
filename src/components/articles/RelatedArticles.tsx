@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -9,11 +10,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface RelatedArticlesProps {
+  currentArticleSlug: string; // Added to avoid suggesting the current article
   currentArticleContent: string;
   currentArticleTags: string[];
 }
 
-export function RelatedArticles({ currentArticleContent, currentArticleTags }: RelatedArticlesProps) {
+export function RelatedArticles({ currentArticleSlug, currentArticleContent, currentArticleTags }: RelatedArticlesProps) {
   const [related, setRelated] = useState<SuggestRelatedArticlesOutput | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,17 @@ export function RelatedArticles({ currentArticleContent, currentArticleTags }: R
           numberOfSuggestions: 3,
         };
         const suggestions = await suggestRelatedArticles(input);
-        setRelated(suggestions);
+        // Filter out the current article if it happens to be suggested
+        const filteredSuggestions = suggestions.filter(article => {
+            // Assuming article.url might be a slug or a full URL
+            // This check is basic and might need refinement based on URL structure
+            if (article.url.startsWith('http')) {
+                const slugFromUrl = article.url.substring(article.url.lastIndexOf('/') + 1);
+                return slugFromUrl !== currentArticleSlug;
+            }
+            return article.url !== currentArticleSlug;
+        });
+        setRelated(filteredSuggestions);
       } catch (err) {
         console.error("Failed to fetch related articles:", err);
         setError("Could not load related articles at this time.");
@@ -37,8 +49,17 @@ export function RelatedArticles({ currentArticleContent, currentArticleTags }: R
         setLoading(false);
       }
     }
-    fetchRelated();
-  }, [currentArticleContent, currentArticleTags]);
+    if (process.env.GEMINI_API_KEY) { // Only fetch if Gemini API key is likely configured
+        fetchRelated();
+    } else {
+        setLoading(false);
+        console.warn("GEMINI_API_KEY not found, skipping related articles AI suggestions.");
+    }
+  }, [currentArticleContent, currentArticleTags, currentArticleSlug]);
+
+  if (!process.env.GEMINI_API_KEY) {
+    return null; // Don't render the component if the API key isn't set
+  }
 
   if (loading) {
     return (

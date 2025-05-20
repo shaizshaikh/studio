@@ -17,8 +17,7 @@ interface ArticlePageProps {
 }
 
 export async function generateStaticParams() {
-  // TODO: When using a DB, fetch slugs from the DB
-  const articles = await getArticles();
+  const articles = await getArticles(); // Fetches from DB via Prisma
   return articles.map(article => ({
     slug: article.slug,
   }));
@@ -32,54 +31,64 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     };
   }
 
+  const siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const articleUrl = siteBaseUrl ? `${siteBaseUrl}/articles/${article.slug}` : `/articles/${article.slug}`;
+  
+  // Use a more generic placeholder if the actual logo URL isn't available or base URL isn't set
+  const publisherLogoUrl = siteBaseUrl 
+    ? `${siteBaseUrl}/images/logo.png` // Assuming you'll place a logo.png in public/images
+    : 'https://placehold.co/600x60.png/000000/FFFFFF?text=DevOps+Digest';
+
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
-    image: article.image ? [article.image] : undefined,
-    datePublished: article.date,
+    image: article.image ? [article.image] : undefined, // Ensure it's an array
+    datePublished: new Date(article.date).toISOString(),
+    dateModified: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
     author: { 
-      '@type': 'Organization', // Or 'Person' if you add author details
-      name: 'DevOps Digest', // Replace with actual author name or site name
+      '@type': 'Organization', // Or 'Person' if you add specific author details to articles
+      name: 'DevOps Digest', // Replace with actual author name or site name if it varies
     },
     publisher: {
         '@type': 'Organization',
         name: 'DevOps Digest',
         logo: {
             '@type': 'ImageObject',
-            // TODO: Replace with your actual logo URL
-            url: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/images/logo.png` : 'https://placehold.co/600x60.png/FFFFFF/000000?text=DevOps+Digest+Logo' 
+            url: publisherLogoUrl,
         }
     },
     description: article.excerpt,
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : `/articles/${article.slug}`,
+      '@id': articleUrl,
     },
-    articleBody: article.rawContent, // Add raw content for SEO
+    articleBody: article.rawContent,
   };
 
   return {
     title: `${article.title} | DevOps Digest`,
     description: article.excerpt,
     keywords: article.tags.join(', '),
-    openGraph: article.image ? {
+    openGraph: {
       title: article.title,
       description: article.excerpt,
-      url: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : undefined,
-      images: [
+      url: articleUrl,
+      images: article.image ? [
         {
           url: article.image,
           width: 1200, // Standard OG image width
           height: 630, // Standard OG image height
           alt: article.title,
         },
-      ],
+      ] : undefined,
       type: 'article',
-      publishedTime: article.date,
+      publishedTime: new Date(article.date).toISOString(),
+      modifiedTime: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
       authors: ['DevOps Digest'], // Or specific author if available
       tags: article.tags,
-    } : undefined,
+    },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
@@ -89,7 +98,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       // creator: '@authorTwitterHandle', // Optional: Author's Twitter handle
     },
     alternates: {
-      canonical: process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.slug}` : `/articles/${article.slug}`,
+      canonical: articleUrl,
     },
     other: {
       structuredData: JSON.stringify(structuredData),
@@ -104,10 +113,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  // Ensure htmlContent is available, generate if necessary (though getArticleBySlug should handle this)
+  // Ensure htmlContent is available, generate if necessary
   const finalHtmlContent = article.htmlContent || markdownToHtml(article.rawContent);
 
-  const metadataResult = await generateMetadata({ params });
+  // Fetch metadata again to get structured data for the script tag
+  // Note: In Next.js 13+ App Router, metadata is handled by `generateMetadata`
+  // but for ld+json script, we might need to pass it or re-fetch/re-construct.
+  // For simplicity here, re-constructing a minimal part or assuming generateMetadata has run.
+  // A more optimized way might involve a shared utility if performance becomes a concern.
+  const metadataResult = await generateMetadata({ params }); // Re-call to get the stringified data
   const structuredDataString = (metadataResult.other as { structuredData: string })?.structuredData;
 
 
@@ -171,11 +185,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       />
 
       <RelatedArticles 
+        currentArticleSlug={article.slug}
         currentArticleContent={finalHtmlContent} 
         currentArticleTags={article.tags} 
       />
     </article>
   );
 }
-
-    
