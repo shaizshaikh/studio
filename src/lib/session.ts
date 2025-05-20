@@ -1,5 +1,4 @@
-// src/lib/session.ts
-import { IronSession, type IronSessionData } from 'iron-session';
+import { getIronSession, type IronSession, type IronSessionData } from 'iron-session';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
@@ -20,14 +19,14 @@ if (!sessionSecret || sessionSecret.length < MIN_SECRET_LENGTH) {
     // For now, we'll allow fallback to a generated one but log a critical error.
     sessionSecret = crypto.randomBytes(32).toString('hex');
     console.warn(
-        `PRODUCTION FALLBACK: Using a dynamically generated SESSION_SECRET. Sessions WILL NOT PERSIST across server restarts or deployments. This is INSECURE for production.`
-      );
+      `PRODUCTION FALLBACK: Using a dynamically generated SESSION_SECRET. Sessions WILL NOT PERSIST across server restarts or deployments. This is INSECURE for production.`
+    );
   } else {
     // For development, if no secret is provided or it's too short, generate a temporary one and warn.
     console.warn(`DEVELOPMENT WARNING: ${warningMessage}`);
     if (!sessionSecret || sessionSecret.length < MIN_SECRET_LENGTH) {
-        sessionSecret = crypto.randomBytes(32).toString('hex');
-        console.log('DEVELOPMENT: Generated temporary SESSION_SECRET. Sessions will not persist across restarts if this secret changes.');
+      sessionSecret = crypto.randomBytes(32).toString('hex');
+      console.log('DEVELOPMENT: Generated temporary SESSION_SECRET. Sessions will not persist across restarts if this secret changes.');
     }
   }
 }
@@ -53,12 +52,12 @@ export interface SessionData extends IronSessionData {
 }
 
 export async function getSession(): Promise<IronSession<SessionData>> {
-  const session = await IronSession.fromCookies<SessionData>(cookies(), sessionOptions);
-  
+  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+
   // Ensure default structure if session is new or IronSessionData is empty
   // This is crucial for the middleware check.
   if (session.isLoggedIn === undefined) {
-    session.isLoggedIn = false; 
+    session.isLoggedIn = false;
   }
   if (session.username === undefined) {
     session.username = undefined; // Explicitly set to undefined if not present
