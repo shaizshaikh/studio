@@ -7,18 +7,10 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-// When using Prisma Accelerate or a Data Proxy,
-// Prisma Client automatically detects the proxy URL from the DATABASE_URL env var.
-// Explicitly passing it can sometimes help in complex environments or for clarity.
-const prisma =
-  global.prisma ||
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-  });
+// Prisma Client will automatically detect if DATABASE_URL is a Prisma Accelerate (Data Proxy)
+// URL (i.e., starts with "prisma://") and use it accordingly.
+// No explicit 'datasources' override is needed in the constructor for Accelerate.
+const prisma = global.prisma || new PrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
