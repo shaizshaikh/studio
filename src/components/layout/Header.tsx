@@ -1,11 +1,15 @@
+
+"use client"; // Essential for using client-side hooks like useSession
+
 import Link from 'next/link';
-import { BookMarked, Cog, LogIn } from 'lucide-react'; // Removed LogOut for now
+import { BookMarked, Cog, LogIn, LogOut as LogOutIcon } from 'lucide-react'; // Renamed LogOut to LogOutIcon to avoid conflict
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-// Session logic will be re-added with Firebase Auth
+import { useSession, signOut } from "next-auth/react"; // Import useSession and signOut
 
-export async function Header() {
-  // const session = await getSession(); // Temporarily remove session logic
+export function Header() {
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
 
   return (
     <header className="py-4 md:py-6 border-b">
@@ -15,24 +19,32 @@ export async function Header() {
           DevOps Digest
         </Link>
         <div className="flex items-center gap-2">
-          {/* Simplified Auth UI for now - will be replaced by Firebase Auth state */}
-          {false && ( // Placeholder for isLoggedIn check
-            <Button variant="ghost" size="icon" asChild aria-label="Admin Panel">
-              <Link href="/admin">
-                <Cog className="h-5 w-5" />
-              </Link>
-            </Button>
-          )}
-          {true ? ( // Placeholder: always show Login for now
+          {isLoading ? (
+            <div className="h-8 w-20 animate-pulse rounded-md bg-muted"></div> // Skeleton for loading state
+          ) : session ? (
+            <>
+              <Button variant="ghost" size="icon" asChild aria-label="Admin Panel">
+                <Link href="/admin">
+                  <Cog className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button 
+                variant="ghost" 
+                onClick={() => signOut({ callbackUrl: '/' })} // Sign out and redirect to homepage
+                aria-label="Logout"
+                className="flex items-center"
+              >
+                <LogOutIcon className="h-5 w-5 md:mr-2" />
+                <span className="hidden md:inline">Logout</span>
+              </Button>
+            </>
+          ) : (
             <Button variant="ghost" asChild aria-label="Login">
               <Link href="/login" className="flex items-center">
                 <LogIn className="h-5 w-5 md:mr-2" />
                  <span className="hidden md:inline">Login</span>
               </Link>
             </Button>
-          ) : (
-            {/* Logout button will be re-added here */}
-            null
           )}
           <DarkModeToggle />
         </div>
