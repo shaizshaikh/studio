@@ -7,11 +7,17 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+// When using Prisma Accelerate or a Data Proxy,
+// Prisma Client automatically detects the proxy URL from the DATABASE_URL env var.
+// Explicitly passing it can sometimes help in complex environments or for clarity.
 const prisma =
   global.prisma ||
   new PrismaClient({
-    // Optional: log Prisma queries if needed for debugging
-    // log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : [],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 if (process.env.NODE_ENV !== 'production') {
