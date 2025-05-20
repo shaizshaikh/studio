@@ -1,12 +1,11 @@
 import Link from 'next/link';
-import { BookMarked, Cog, LogIn, LogOut } from 'lucide-react';
+import { BookMarked, Cog, LogIn } from 'lucide-react'; // Removed LogOut for now
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { getSession } from '@/lib/session'; // For server-side session check
-import { logoutAction } from '@/app/auth/actions'; // For the logout form
+// Session logic will be re-added with Firebase Auth
 
 export async function Header() {
-  const session = await getSession();
+  // const session = await getSession(); // Temporarily remove session logic
 
   return (
     <header className="py-4 md:py-6 border-b">
@@ -16,27 +15,24 @@ export async function Header() {
           DevOps Digest
         </Link>
         <div className="flex items-center gap-2">
-          {session.isLoggedIn && (
+          {/* Simplified Auth UI for now - will be replaced by Firebase Auth state */}
+          {false && ( // Placeholder for isLoggedIn check
             <Button variant="ghost" size="icon" asChild aria-label="Admin Panel">
               <Link href="/admin">
                 <Cog className="h-5 w-5" />
               </Link>
             </Button>
           )}
-          {session.isLoggedIn ? (
-            <form action={logoutAction} className="flex items-center">
-              <Button variant="ghost" type="submit" aria-label="Logout" className="flex items-center">
-                <LogOut className="h-5 w-5 md:mr-2" />
-                <span className="hidden md:inline">Logout</span>
-              </Button>
-            </form>
-          ) : (
+          {true ? ( // Placeholder: always show Login for now
             <Button variant="ghost" asChild aria-label="Login">
               <Link href="/login" className="flex items-center">
                 <LogIn className="h-5 w-5 md:mr-2" />
                  <span className="hidden md:inline">Login</span>
               </Link>
             </Button>
+          ) : (
+            {/* Logout button will be re-added here */}
+            null
           )}
           <DarkModeToggle />
         </div>

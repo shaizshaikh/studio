@@ -2,11 +2,11 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Sidebar, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, PlusSquare, Edit, Settings } from 'lucide-react';
+import { Home, PlusSquare, Edit, Settings } from 'lucide-react'; // Removed LogOut for now
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  // In a real app, you'd have authentication checks here.
-  // If not authenticated, redirect to a login page.
+  // Authentication checks will be re-implemented with Firebase Auth.
+  // For now, we assume the user is authenticated if they reach this layout.
 
   return (
     <SidebarProvider defaultOpen>
@@ -36,13 +36,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <span>Manage Articles</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/* Add more admin links as needed */}
             <SidebarMenuItem>
               <SidebarMenuButton href="/admin/settings" tooltip="Settings (Placeholder)">
                 <Settings />
                 <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {/* Logout button/form will be re-added here based on Firebase Auth state */}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
