@@ -7,10 +7,10 @@ datasource db {
 }
 
 generator client {
-  provider      = "prisma-client-js"
-  // Common binary targets for development and CI/CD environments.
-  // When using Data Proxy at runtime, the specific local binary isn't critical for that runtime.
-  binaryTargets = ["native", "linux-musl"]
+  provider = "prisma-client-js"
+  // "native" is a good default when using Accelerate, as Prisma Client handles the proxy.
+  // This helps ensure `prisma generate` works smoothly in various dev/CI environments.
+  binaryTargets = ["native"]
 }
 
 model Article {
