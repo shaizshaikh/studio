@@ -1,6 +1,5 @@
 // src/lib/session.ts
-import * as IronSessionPackage from 'iron-session';
-import type { IronSessionData } from 'iron-session';
+import { IronSession, type IronSessionData } from 'iron-session';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
@@ -12,8 +11,8 @@ if (!sessionSecret || sessionSecret.length < MIN_SECRET_LENGTH) {
   const warningMessage =
     `SESSION_SECRET is not set or is less than ${MIN_SECRET_LENGTH} characters long. ` +
     'For production, a strong, persistent secret is MANDATORY. ' +
-    'If this is a development environment and the secret was auto-generated or is missing, sessions WILL NOT PERSIST across server restarts. ' +
-    'To enable persistent sessions, set a strong SESSION_SECRET (e.g., `openssl rand -hex 32`) in your .env file.';
+    'If this is a development environment and the secret was auto-generated, missing, or too short, sessions WILL NOT PERSIST across server restarts. ' +
+    'To enable persistent sessions, set a strong SESSION_SECRET (e.g., `openssl rand -hex 32`) of at least 32 characters in your .env file.';
 
   if (process.env.NODE_ENV === 'production') {
     console.error(`CRITICAL SECURITY WARNING: ${warningMessage}`);
@@ -28,14 +27,14 @@ if (!sessionSecret || sessionSecret.length < MIN_SECRET_LENGTH) {
     console.warn(`DEVELOPMENT WARNING: ${warningMessage}`);
     if (!sessionSecret || sessionSecret.length < MIN_SECRET_LENGTH) {
         sessionSecret = crypto.randomBytes(32).toString('hex');
-        console.log('DEVELOPMENT: Generated temporary SESSION_SECRET. Sessions will not persist across restarts.');
+        console.log('DEVELOPMENT: Generated temporary SESSION_SECRET. Sessions will not persist across restarts if this secret changes.');
     }
   }
 }
 // --- End Session Secret Configuration ---
 
 export const sessionOptions = {
-  password: sessionSecret,
+  password: sessionSecret, // This must be at least 32 characters long
   cookieName: 'devops-digest-auth-session',
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
@@ -53,9 +52,8 @@ export interface SessionData extends IronSessionData {
   isLoggedIn?: boolean;
 }
 
-export async function getSession(): Promise<IronSessionPackage.IronSession<SessionData>> {
-  // Use the namespace import here
-  const session = await IronSessionPackage.IronSession.fromCookies<SessionData>(cookies(), sessionOptions);
+export async function getSession(): Promise<IronSession<SessionData>> {
+  const session = await IronSession.fromCookies<SessionData>(cookies(), sessionOptions);
   
   // Ensure default structure if session is new or IronSessionData is empty
   // This is crucial for the middleware check.
