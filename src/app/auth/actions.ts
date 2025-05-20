@@ -3,9 +3,7 @@
 
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
-// bcryptjs would be used if comparing hashed passwords.
-// For this simplified dev setup, we're doing direct string comparison.
-// import bcrypt from 'bcryptjs'; 
+import bcrypt from 'bcryptjs'; 
 
 export type LoginFormState = {
   message: string;
@@ -35,10 +33,10 @@ export async function loginAction(
   }
 
   const envAdminUsername = process.env.ADMIN_USERNAME;
-  const envAdminPassword = process.env.ADMIN_PASSWORD; // Plaintext password from .env
+  const envAdminPasswordHash = process.env.ADMIN_PASSWORD_HASH; // HASHED password from .env
 
-  if (!envAdminUsername || typeof envAdminPassword === 'undefined') { // Check if ADMIN_PASSWORD could be an empty string
-    console.error("CRITICAL SECURITY CONFIGURATION ERROR: ADMIN_USERNAME or ADMIN_PASSWORD not set in .env file for authentication.");
+  if (!envAdminUsername || !envAdminPasswordHash) {
+    console.error("CRITICAL SECURITY CONFIGURATION ERROR: ADMIN_USERNAME or ADMIN_PASSWORD_HASH not set in .env file for authentication.");
     return {
       message: 'Authentication service is not configured correctly by the administrator.',
       success: false,
@@ -46,34 +44,29 @@ export async function loginAction(
     };
   }
 
-  // --- DEVELOPMENT ONLY: Plaintext Password Comparison ---
-  // WARNING: This direct plaintext password comparison is for EASE OF SETUP in a
-  //          DEVELOPMENT environment like Firebase Studio and is HIGHLY INSECURE
-  //          for any production or publicly accessible application.
-  //
-  // FOR PRODUCTION DEPLOYMENT, YOU ABSOLUTELY MUST:
-  // 1. Generate a strong BCRYPT HASH of your chosen admin password.
-  // 2. Store this HASH (not the plaintext password) in your ADMIN_PASSWORD
-  //    (or a new ADMIN_PASSWORD_HASH) environment variable.
-  // 3. Update this login logic to use `await bcrypt.compare(password, envAdminPasswordHash)`
-  //    for secure password verification.
-  //
-  // This current simplified check is ONLY to reduce manual steps for you during this dev phase.
-  const DANGEROUS_plaintextPasswordCheck = (username === envAdminUsername && password === envAdminPassword);
-
-  if (DANGEROUS_plaintextPasswordCheck) {
+  const isUsernameMatch = (username === envAdminUsername);
+  let isPasswordMatch = false;
+  if (isUsernameMatch && password && envAdminPasswordHash) {
+    try {
+      isPasswordMatch = await bcrypt.compare(password, envAdminPasswordHash);
+    } catch (compareError) {
+      console.error("Error comparing password hash:", compareError);
+      // Treat hash comparison errors as a login failure to be safe
+      isPasswordMatch = false;
+    }
+  }
+  
+  if (isUsernameMatch && isPasswordMatch) {
     const session = await getSession();
     session.username = username;
     session.isLoggedIn = true;
     await session.save(); // Explicitly save the session to set/update the cookie
 
-    // Revalidate and redirect AFTER session is saved
-    // No revalidatePath needed for login, middleware handles access control to /admin
     redirect('/admin'); 
     // redirect() throws an error to end the request, so this return is for type safety.
     return { message: 'Logged in successfully!', success: true }; 
   } else {
-    if (username !== envAdminUsername) {
+    if (!isUsernameMatch) {
         console.warn(`Login attempt failed: Incorrect username "${username}".`);
     } else {
         console.warn(`Login attempt failed for username "${username}": Incorrect password.`);
