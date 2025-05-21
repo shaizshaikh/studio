@@ -1,10 +1,12 @@
-"use client"; // CRITICAL: Header uses useSession, so it must be a Client Component
+
+"use client";
 
 import Link from 'next/link';
 import { BookMarked, Cog, LogIn, LogOut as LogOutIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { useSession, signOut } from "next-auth/react"; // Correct import for client-side hooks
+import { useSession, signOut } from "next-auth/react";
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -18,29 +20,31 @@ export function Header() {
           DevOps Digest
         </Link>
 
-        <div className="flex items-center gap-2"> {/* Reduced gap for tighter layout */}
+        <div className="flex items-center gap-2">
           {isLoading ? (
-            <div className="h-8 w-20 animate-pulse rounded-md bg-muted" aria-label="Loading user state"></div>
+            <Skeleton className="h-9 w-24 rounded-md" />
           ) : session?.user ? (
             <>
-              <Button variant="ghost" size="icon" asChild aria-label="Admin Panel">
-                <Link href="/admin">
-                  <Cog className="h-5 w-5" />
+              <Button variant="ghost" size="sm" asChild aria-label="Admin Panel" title="Admin Panel">
+                <Link href="/admin" className="flex items-center">
+                  <Cog className="h-5 w-5 md:mr-2" />
+                  <span className="hidden md:inline">Admin</span>
                 </Link>
               </Button>
               <Button
                 variant="ghost"
-                size="icon" // Changed to icon for consistency, text shown via tooltip or larger screens
-                onClick={() => signOut({ callbackUrl: '/' })} // Redirect to home after logout
+                size="sm"
+                onClick={() => signOut({ callbackUrl: '/' })}
                 aria-label="Logout"
-                title="Logout" // Tooltip for icon button
+                title="Logout"
+                className="flex items-center"
               >
-                <LogOutIcon className="h-5 w-5" />
-                 {/* <span className="hidden md:inline">Logout</span> */}
+                <LogOutIcon className="h-5 w-5 md:mr-2" />
+                 <span className="hidden md:inline">Logout</span>
               </Button>
             </>
           ) : (
-            <Button variant="ghost" asChild aria-label="Login">
+            <Button variant="ghost" size="sm" asChild aria-label="Login" title="Login">
               <Link href="/login" className="flex items-center">
                 <LogIn className="h-5 w-5 md:mr-2" />
                 <span className="hidden md:inline">Login</span>

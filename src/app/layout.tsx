@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -30,13 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <AuthProvider> {/* AuthProvider (and thus SessionProvider) now wraps ThemeProvider and everything else */}
+        <AuthProvider> {/* AuthProvider (which includes SessionProvider) now wraps ThemeProvider and everything else */}
           <ThemeProvider
             defaultTheme="system"
             storageKey="devops-digest-theme"
           >
             <div className="flex flex-col min-h-screen">
-              <Header /> {/* Header is now a child of AuthProvider */}
+              <Header /> {/* Header is now a child of AuthProvider and can use useSession */}
               <main className="flex-grow container mx-auto px-4 py-8">
                 {children}
               </main>
