@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Header } from '@/components/layout/Header';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/components/auth/AuthProvider'; // Import the AuthProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,23 +30,25 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <ThemeProvider
-          defaultTheme="system"
-          storageKey="devops-digest-theme"
-        >
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
-              {children}
-            </main>
-            <footer className="py-6 border-t">
-              <div className="container mx-auto px-4 text-center text-muted-foreground">
-                <p>&copy; {new Date().getFullYear()} DevOps Digest. All rights reserved.</p>
-              </div>
-            </footer>
-          </div>
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider> {/* AuthProvider (and thus SessionProvider) now wraps ThemeProvider and everything else */}
+          <ThemeProvider
+            defaultTheme="system"
+            storageKey="devops-digest-theme"
+          >
+            <div className="flex flex-col min-h-screen">
+              <Header /> {/* Header is now a child of AuthProvider */}
+              <main className="flex-grow container mx-auto px-4 py-8">
+                {children}
+              </main>
+              <footer className="py-6 border-t">
+                <div className="container mx-auto px-4 text-center text-muted-foreground">
+                  <p>&copy; {new Date().getFullYear()} DevOps Digest. All rights reserved.</p>
+                </div>
+              </footer>
+            </div>
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
