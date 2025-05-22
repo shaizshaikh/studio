@@ -2,12 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import { BookMarked, LogIn, LogOut as LogOutIcon, UserCircle, Settings, Sun, Moon } from 'lucide-react';
+import { BookMarked, LogIn, LogOut as LogOutIcon, UserCircle, Settings, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { useAuth } from '@/components/auth/FirebaseAuthProvider'; // Use new Firebase Auth Context
-import { auth, googleProvider } from '@/lib/firebase'; // Import Firebase auth and provider
-import { signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { useAuth } from '@/components/auth/FirebaseAuthProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -21,30 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRouter } from 'next/navigation';
 
 export function Header() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, signInWithGoogle, logout } = useAuth();
   const router = useRouter();
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // AuthProvider will handle admin redirect if user.email matches ADMIN_EMAIL
-      console.log("Google Sign-In successful:", result.user);
-      // If admin, redirect logic is in FirebaseAuthProvider
-    } catch (error) {
-      console.error("Error during Google Sign-In:", error);
-      // You might want to show a toast message to the user here
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await firebaseSignOut(auth);
-      router.push('/'); // Redirect to homepage after logout
-      console.log("Logout successful");
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
-  };
 
   return (
     <header className="py-4 md:py-6 border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
@@ -81,20 +57,20 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {isAdmin && ( // Only show Admin Dashboard link if user is admin
+                {isAdmin && (
                    <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
                       <span>Admin Dashboard</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <DropdownMenuItem onClick={logout} className="cursor-pointer">
                   <LogOutIcon className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" size="sm" onClick={handleGoogleSignIn} aria-label="Sign in with Google" title="Sign in with Google">
+            <Button variant="outline" size="sm" onClick={signInWithGoogle} aria-label="Sign in with Google" title="Sign in with Google">
               <LogIn className="h-5 w-5 mr-0 md:mr-2" />
               <span className="hidden md:inline">Sign in</span>
             </Button>

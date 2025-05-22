@@ -3,15 +3,17 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, type User as FirebaseUser, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton'; // For loading state
+import { useRouter, usePathname } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton'; 
 
 interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
-  isAdmin: boolean; // True if the logged-in user is the admin
+  isAdmin: boolean;
+  signInWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,61 +23,56 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false);
-      
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || process.env.ADMIN_EMAIL; // Check both, NEXT_PUBLIC for client, ADMIN_EMAIL for server if ever needed elsewhere
-
       if (firebaseUser) {
-        if (firebaseUser.email === adminEmail) {
-          setIsAdmin(true);
-          // Only redirect if not already in an admin path or dashboard
-          // This prevents redirect loops if already on an admin page.
-          if (!window.location.pathname.startsWith('/admin/dashboard') && !window.location.pathname.startsWith('/admin/articles')) {
-             // router.push('/admin/dashboard'); // Redirecting admin to dashboard
-          }
-        } else {
-          setIsAdmin(false);
-          // If a non-admin is somehow on an admin page, redirect them away.
-          // This check will primarily be enforced by AdminLayout, but this adds a layer.
-          if (window.location.pathname.startsWith('/admin')) {
-            // router.push('/'); 
-          }
+        const isAdminUser = firebaseUser.email === adminEmail;
+        setIsAdmin(isAdminUser);
+        if (isAdminUser && !pathname.startsWith('/admin')) {
+          // Only redirect to admin dashboard if they just logged in and are not already in admin
+          // This check might need refinement based on specific login flows
+          router.push('/admin/dashboard');
         }
       } else {
         setIsAdmin(false);
-        // If no user and they are on an admin page, redirect them away.
-        // Primarily handled by AdminLayout.
-        if (window.location.pathname.startsWith('/admin')) {
-          // router.push('/');
-        }
       }
+      setLoading(false);
     });
-
     return () => unsubscribe();
-  }, [router]); // router dependency is important for navigation
+  }, [router, adminEmail, pathname]);
 
-  useEffect(() => {
-    // This effect handles the redirect specifically after user state and isAdmin state are set.
-    // It ensures that redirects happen based on the latest auth status.
-    if (!loading) { // Only act once initial auth check is complete
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
-      if (user && user.email === adminEmail) {
-        if (!window.location.pathname.startsWith('/admin')) {
-            // If admin logs in and is not in admin area, take them to dashboard.
-            // router.push('/admin/dashboard'); 
-        }
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      // setUser and setIsAdmin will be handled by onAuthStateChanged
+      // The redirect for admin users is also handled in the useEffect above
+      if (result.user.email !== adminEmail && pathname.startsWith('/admin')) {
+        // If a non-admin somehow triggered sign-in while on an admin page (unlikely), redirect them.
+        router.push('/');
       }
-      // Other redirect logic (like non-admin on admin page) is better handled by AdminLayout itself.
+    } catch (error) {
+      console.error("Error during Google Sign-In:", error);
+      // Potentially show a toast to the user
     }
-  }, [user, loading, isAdmin, router]);
+  };
 
+  const logout = async () => {
+    try {
+      await firebaseSignOut(auth);
+      // setUser and setIsAdmin will be handled by onAuthStateChanged
+      router.push('/'); // Redirect to homepage after logout
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
 
   if (loading) {
-    // A simple loading indicator.
     return (
         <div className="flex items-center justify-center min-h-screen">
             <Skeleton className="h-12 w-12 rounded-full bg-muted" />
@@ -85,7 +82,7 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

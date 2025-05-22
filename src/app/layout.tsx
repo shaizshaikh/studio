@@ -5,7 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Header } from '@/components/layout/Header';
 import { Toaster } from '@/components/ui/toaster';
-import { FirebaseAuthProvider } from '@/components/auth/FirebaseAuthProvider'; // Import the new Firebase AuthProvider
+import { FirebaseAuthProvider } from '@/components/auth/FirebaseAuthProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <FirebaseAuthProvider> {/* Firebase AuthProvider now wraps ThemeProvider and everything else */}
+        <FirebaseAuthProvider>
           <ThemeProvider
             defaultTheme="system"
             storageKey="devops-digest-theme"
