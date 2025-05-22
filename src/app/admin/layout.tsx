@@ -1,26 +1,52 @@
 
+"use client";
+
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Sidebar, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, PlusSquare, Edit, Settings } from 'lucide-react'; // Removed LogOut for now
+import { Home, PlusSquare, Edit, Settings, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '@/components/auth/FirebaseAuthProvider';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  // Authentication checks will be re-implemented with Firebase Auth.
-  // For now, we assume the user is authenticated if they reach this layout.
+  const { user, loading, isAdmin } = useAuth();
+  const router = useRouter();
 
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        // Not logged in, redirect to homepage (or a general login page if we had one)
+        router.push('/'); 
+      } else if (!isAdmin) {
+        // Logged in, but not the admin user, redirect to homepage
+        console.warn("Non-admin user attempted to access admin area. Redirecting.");
+        router.push('/');
+      }
+      // If user is present and isAdmin is true, they can stay.
+    }
+  }, [user, loading, isAdmin, router]);
+
+  if (loading || !user || !isAdmin) {
+    // Render a loading state or null while checking auth and redirecting
+    // This prevents a flash of admin content if the user is not authorized.
+    return <div className="flex items-center justify-center min-h-screen">Verifying access...</div>;
+  }
+
+  // If execution reaches here, user is authenticated and is an admin.
   return (
     <SidebarProvider defaultOpen>
       <Sidebar side="left" variant="sidebar" collapsible="icon">
         <SidebarHeader className="p-4">
-          <Link href="/admin" className="text-2xl font-semibold text-primary hover:opacity-80 transition-opacity">
+          <Link href="/admin/dashboard" className="text-2xl font-semibold text-primary hover:opacity-80 transition-opacity">
             Admin Panel
           </Link>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/admin" tooltip="Dashboard">
-                <Home />
+              <SidebarMenuButton href="/admin/dashboard" tooltip="Dashboard">
+                <LayoutDashboard /> 
                 <span>Dashboard</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -37,12 +63,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/admin/settings" tooltip="Settings (Placeholder)">
+              <SidebarMenuButton href="/admin/settings" tooltip="Settings">
                 <Settings />
                 <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/* Logout button/form will be re-added here based on Firebase Auth state */}
+            {/* Logout is handled in the main Header component */}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>

@@ -1,10 +1,13 @@
+
 "use client";
 
 import Link from 'next/link';
-import { BookMarked, Cog, LogIn, LogOut as LogOutIcon, UserCircle } from 'lucide-react';
+import { BookMarked, LogIn, LogOut as LogOutIcon, UserCircle, Settings, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from '@/components/auth/FirebaseAuthProvider'; // Use new Firebase Auth Context
+import { auth, googleProvider } from '@/lib/firebase'; // Import Firebase auth and provider
+import { signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -15,13 +18,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from 'next/navigation';
 
 export function Header() {
-  const { data: session, status } = useSession();
-  const isLoading = status === "loading";
+  const { user, loading, isAdmin } = useAuth();
+  const router = useRouter();
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      // User is signed in, AuthProvider will handle redirection if admin
+      console.log("Google Sign-In successful:", result.user);
+    } catch (error) {
+      console.error("Error during Google Sign-In:", error);
+      // Handle error (e.g., display a toast message)
+    }
+  };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/' }); // Redirect to homepage after logout
+    try {
+      await firebaseSignOut(auth);
+      router.push('/'); // Redirect to homepage after logout
+      console.log("Logout successful");
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
   return (
@@ -33,24 +54,19 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-3">
-          {isLoading ? (
+          {loading ? (
             <Skeleton className="h-9 w-24 rounded-md" />
-          ) : session?.user ? (
+          ) : user ? (
             <>
-              <Button variant="ghost" size="sm" asChild aria-label="Admin Panel" title="Admin Panel">
-                <Link href="/admin" className="flex items-center">
-                  <Cog className="h-5 w-5 md:mr-2" />
-                  <span className="hidden md:inline">Admin</span>
-                </Link>
-              </Button>
+              {/* No explicit Admin Panel link as per requirements */}
+              {/* isAdmin flag can be used elsewhere if needed, but not for a direct link here */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      {/* Placeholder for user image if available */}
-                      {/* <AvatarImage src={session.user.image || undefined} alt={session.user.name || "User"} /> */}
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
                       <AvatarFallback>
-                        {session.user.name ? session.user.name.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5"/>}
+                        {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5"/>}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -59,14 +75,20 @@ export function Header() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {session.user.name || "Admin"}
+                        {user.displayName || "User"}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {session.user.email}
+                        {user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {isAdmin && (
+                     <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOutIcon className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -75,11 +97,9 @@ export function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <Button variant="outline" size="sm" asChild aria-label="Login" title="Login">
-              <Link href="/login" className="flex items-center">
-                <LogIn className="h-5 w-5 mr-0 md:mr-2" />
-                <span className="hidden md:inline">Login</span>
-              </Link>
+            <Button variant="outline" size="sm" onClick={handleGoogleSignIn} aria-label="Sign in with Google" title="Sign in with Google">
+              <LogIn className="h-5 w-5 mr-0 md:mr-2" />
+              <span className="hidden md:inline">Sign in</span>
             </Button>
           )}
           <DarkModeToggle />

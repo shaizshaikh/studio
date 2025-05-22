@@ -9,6 +9,8 @@ import { CalendarDays, Tags, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { Metadata } from 'next';
+// Placeholder for a future CommentSection client component
+// import { CommentSection } from '@/components/comments/CommentSection';
 
 interface ArticlePageProps {
   params: {
@@ -17,7 +19,7 @@ interface ArticlePageProps {
 }
 
 export async function generateStaticParams() {
-  const articles = await getArticles(); // Fetches from DB via Prisma
+  const articles = await getArticles();
   return articles.map(article => ({
     slug: article.slug,
   }));
@@ -34,22 +36,21 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const siteBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
   const articleUrl = siteBaseUrl ? `${siteBaseUrl}/articles/${article.slug}` : `/articles/${article.slug}`;
   
-  // Use a more generic placeholder if the actual logo URL isn't available or base URL isn't set
   const publisherLogoUrl = siteBaseUrl 
-    ? `${siteBaseUrl}/images/logo.png` // Assuming you'll place a logo.png in public/images
-    : 'https://placehold.co/600x60.png/000000/FFFFFF?text=DevOps+Digest';
+    ? `${siteBaseUrl}/images/logo.png`
+    : 'https://placehold.co/600x60.png';
 
 
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
-    image: article.image ? [article.image] : undefined, // Ensure it's an array
+    image: article.image ? [article.image] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : undefined),
     datePublished: new Date(article.date).toISOString(),
     dateModified: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
     author: { 
-      '@type': 'Organization', // Or 'Person' if you add specific author details to articles
-      name: 'DevOps Digest', // Replace with actual author name or site name if it varies
+      '@type': 'Organization',
+      name: 'DevOps Digest',
     },
     publisher: {
         '@type': 'Organization',
@@ -78,24 +79,22 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       images: article.image ? [
         {
           url: article.image,
-          width: 1200, // Standard OG image width
-          height: 630, // Standard OG image height
+          width: 1200,
+          height: 630,
           alt: article.title,
         },
-      ] : undefined,
+      ] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : []),
       type: 'article',
       publishedTime: new Date(article.date).toISOString(),
       modifiedTime: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
-      authors: ['DevOps Digest'], // Or specific author if available
+      authors: ['DevOps Digest'],
       tags: article.tags,
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.excerpt,
-      images: article.image ? [article.image] : undefined,
-      // site: '@yourTwitterHandle', // Optional: Your Twitter handle
-      // creator: '@authorTwitterHandle', // Optional: Author's Twitter handle
+      images: article.image ? [article.image] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : []),
     },
     alternates: {
       canonical: articleUrl,
@@ -113,17 +112,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  // Ensure htmlContent is available, generate if necessary
   const finalHtmlContent = article.htmlContent || markdownToHtml(article.rawContent);
-
-  // Fetch metadata again to get structured data for the script tag
-  // Note: In Next.js 13+ App Router, metadata is handled by `generateMetadata`
-  // but for ld+json script, we might need to pass it or re-fetch/re-construct.
-  // For simplicity here, re-constructing a minimal part or assuming generateMetadata has run.
-  // A more optimized way might involve a shared utility if performance becomes a concern.
-  const metadataResult = await generateMetadata({ params }); // Re-call to get the stringified data
+  const metadataResult = await generateMetadata({ params });
   const structuredDataString = (metadataResult.other as { structuredData: string })?.structuredData;
-
 
   return (
     <article className="max-w-3xl mx-auto py-8">
@@ -189,6 +180,24 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         currentArticleContent={finalHtmlContent} 
         currentArticleTags={article.tags} 
       />
+
+      {/* Placeholder for future Comment Section */}
+      {/* 
+        To conditionally show this:
+        1. Create CommentSection as a Client Component.
+        2. Inside CommentSection, use `useAuth()` from `FirebaseAuthProvider`.
+        3. Only render the comment form/list if `user` is not null.
+        <CommentSection articleSlug={article.slug} /> 
+      */}
+      <div className="mt-12 pt-8 border-t">
+        <h2 className="text-2xl md:text-3xl font-semibold mb-4">Comments</h2>
+        <p className="text-muted-foreground">
+          Sign in to leave a comment. (Comment functionality coming soon!)
+        </p>
+        {/* <CommentSection articleSlug={article.slug} /> */}
+      </div>
+
     </article>
   );
 }
+

@@ -5,7 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { Header } from '@/components/layout/Header';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/components/auth/AuthProvider'; // Import the AuthProvider
+import { FirebaseAuthProvider } from '@/components/auth/FirebaseAuthProvider'; // Import the new Firebase AuthProvider
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -31,13 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <AuthProvider> {/* AuthProvider (which includes SessionProvider) now wraps ThemeProvider and everything else */}
+        <FirebaseAuthProvider> {/* Firebase AuthProvider now wraps ThemeProvider and everything else */}
           <ThemeProvider
             defaultTheme="system"
             storageKey="devops-digest-theme"
           >
             <div className="flex flex-col min-h-screen">
-              <Header /> {/* Header is now a child of AuthProvider and can use useSession */}
+              <Header />
               <main className="flex-grow container mx-auto px-4 py-8">
                 {children}
               </main>
@@ -49,7 +49,7 @@ export default function RootLayout({
             </div>
             <Toaster />
           </ThemeProvider>
-        </AuthProvider>
+        </FirebaseAuthProvider>
       </body>
     </html>
   );
