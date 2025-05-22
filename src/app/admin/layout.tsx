@@ -4,10 +4,11 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Sidebar, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, PlusSquare, Edit, Settings, LayoutDashboard } from 'lucide-react';
-import { useAuth } from '@/components/auth/FirebaseAuthProvider';
+import { PlusSquare, Edit, Settings, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '@/components/auth/FirebaseAuthProvider'; // Using Firebase Auth
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, loading, isAdmin } = useAuth();
@@ -16,11 +17,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        // Not logged in, redirect to homepage (or a general login page if we had one)
-        router.push('/'); 
+        // Not logged in, redirect to homepage.
+        // User can then use the "Sign in" button in the main header.
+        console.log("AdminLayout: No user found, redirecting to /");
+        router.push('/');
       } else if (!isAdmin) {
-        // Logged in, but not the admin user, redirect to homepage
-        console.warn("Non-admin user attempted to access admin area. Redirecting.");
+        // Logged in, but not the admin user, redirect to homepage.
+        console.warn("AdminLayout: Non-admin user attempted to access admin area. Redirecting to /");
         router.push('/');
       }
       // If user is present and isAdmin is true, they can stay.
@@ -28,9 +31,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }, [user, loading, isAdmin, router]);
 
   if (loading || !user || !isAdmin) {
-    // Render a loading state or null while checking auth and redirecting
+    // Render a loading state or null while checking auth and redirecting.
     // This prevents a flash of admin content if the user is not authorized.
-    return <div className="flex items-center justify-center min-h-screen">Verifying access...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <p className="text-lg mb-4">Verifying admin access...</p>
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
   }
 
   // If execution reaches here, user is authenticated and is an admin.
@@ -68,7 +80,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/* Logout is handled in the main Header component */}
+            {/* Logout is handled in the main Header component via Firebase Auth */}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
