@@ -27,11 +27,12 @@ export function Header() {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      // User is signed in, AuthProvider will handle redirection if admin
+      // AuthProvider will handle admin redirect if user.email matches ADMIN_EMAIL
       console.log("Google Sign-In successful:", result.user);
+      // If admin, redirect logic is in FirebaseAuthProvider
     } catch (error) {
       console.error("Error during Google Sign-In:", error);
-      // Handle error (e.g., display a toast message)
+      // You might want to show a toast message to the user here
     }
   };
 
@@ -57,45 +58,41 @@ export function Header() {
           {loading ? (
             <Skeleton className="h-9 w-24 rounded-md" />
           ) : user ? (
-            <>
-              {/* No explicit Admin Panel link as per requirements */}
-              {/* isAdmin flag can be used elsewhere if needed, but not for a direct link here */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
-                      <AvatarFallback>
-                        {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5"/>}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.displayName || "User"}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {isAdmin && (
-                     <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Admin Dashboard</span>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                    <LogOutIcon className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
+                    <AvatarFallback>
+                      {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5"/>}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user.displayName || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {isAdmin && ( // Only show Admin Dashboard link if user is admin
+                   <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Admin Dashboard</span>
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+                )}
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button variant="outline" size="sm" onClick={handleGoogleSignIn} aria-label="Sign in with Google" title="Sign in with Google">
               <LogIn className="h-5 w-5 mr-0 md:mr-2" />

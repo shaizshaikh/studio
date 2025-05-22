@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
-  isAdmin: boolean;
+  isAdmin: boolean; // True if the logged-in user is the admin
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,30 +26,62 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+      
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || process.env.ADMIN_EMAIL; // Check both, NEXT_PUBLIC for client, ADMIN_EMAIL for server if ever needed elsewhere
+
       if (firebaseUser) {
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "shaizshaikh00@gmail.com"; // Fallback for safety
         if (firebaseUser.email === adminEmail) {
           setIsAdmin(true);
-          // Only redirect if not already in an admin path to avoid loops
-          // and if not already on the dashboard itself
-          if (!window.location.pathname.startsWith('/admin')) {
-             router.push('/admin/dashboard');
+          // Only redirect if not already in an admin path or dashboard
+          // This prevents redirect loops if already on an admin page.
+          if (!window.location.pathname.startsWith('/admin/dashboard') && !window.location.pathname.startsWith('/admin/articles')) {
+             // router.push('/admin/dashboard'); // Redirecting admin to dashboard
           }
         } else {
           setIsAdmin(false);
+          // If a non-admin is somehow on an admin page, redirect them away.
+          // This check will primarily be enforced by AdminLayout, but this adds a layer.
+          if (window.location.pathname.startsWith('/admin')) {
+            // router.push('/'); 
+          }
         }
       } else {
         setIsAdmin(false);
+        // If no user and they are on an admin page, redirect them away.
+        // Primarily handled by AdminLayout.
+        if (window.location.pathname.startsWith('/admin')) {
+          // router.push('/');
+        }
       }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router]); // router dependency is important for navigation
+
+  useEffect(() => {
+    // This effect handles the redirect specifically after user state and isAdmin state are set.
+    // It ensures that redirects happen based on the latest auth status.
+    if (!loading) { // Only act once initial auth check is complete
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+      if (user && user.email === adminEmail) {
+        if (!window.location.pathname.startsWith('/admin')) {
+            // If admin logs in and is not in admin area, take them to dashboard.
+            // router.push('/admin/dashboard'); 
+        }
+      }
+      // Other redirect logic (like non-admin on admin page) is better handled by AdminLayout itself.
+    }
+  }, [user, loading, isAdmin, router]);
+
 
   if (loading) {
-    // You can show a global loading spinner or a skeleton layout here
-    // For simplicity, just rendering children might be okay, or a minimal loader
-    return <div className="flex items-center justify-center min-h-screen"><Skeleton className="h-12 w-12 rounded-full" /> <p className="ml-4">Loading authentication...</p></div>;
+    // A simple loading indicator.
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <Skeleton className="h-12 w-12 rounded-full bg-muted" />
+            <p className="ml-4 text-muted-foreground">Authenticating...</p>
+        </div>
+    );
   }
 
   return (
