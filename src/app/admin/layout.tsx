@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Sidebar, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { PlusSquare, Edit, Settings, LayoutDashboard } from 'lucide-react';
-import { useAuth } from '@/components/auth/FirebaseAuthProvider'; // Correct path
+import { useAuth } from '@/components/auth/FirebaseAuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +29,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   }, [user, loading, isAdmin, router]);
 
-  // Show loading state or a more robust placeholder while auth is being checked
   if (loading || !user || !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -43,7 +42,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // If user is admin and loaded, render the admin layout
   return (
     <SidebarProvider defaultOpen>
       <Sidebar side="left" variant="sidebar" collapsible="icon">
@@ -90,5 +88,3 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
-
-    

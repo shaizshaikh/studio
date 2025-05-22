@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Corrected path
+import { auth } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -37,9 +37,8 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
         console.log("Firebase AuthProvider: Admin email check. User email:", firebaseUser.email, "Admin email from env:", adminEmail, "Is admin?", isAdminUser);
         
         // Handle redirect for admin user
-        // Only redirect if they just logged in (pathname is not already /admin/*)
-        // and are not already on an admin page.
-        if (isAdminUser && !pathname.startsWith('/admin') && pathname !== '/admin/dashboard') {
+        // Only redirect if they just logged in and are not already on an admin page.
+        if (isAdminUser && !pathname.startsWith('/admin')) {
           console.log("Firebase AuthProvider: Admin user detected, redirecting to /admin/dashboard. Current pathname:", pathname);
           router.push('/admin/dashboard');
         } else if (isAdminUser && pathname.startsWith('/admin')) {
@@ -50,7 +49,6 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
           console.log("Firebase AuthProvider: Non-admin on admin page, redirecting to /");
           router.push('/');
         }
-
       } else {
         setIsAdmin(false);
         // If user logs out and they are on an admin page, redirect to home
@@ -62,19 +60,19 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [router, adminEmail, pathname]); // Added pathname to dependency array
+  }, [router, adminEmail, pathname]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      setLoading(true); // Set loading before sign-in attempt
+      setLoading(true); 
       await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle user state update and admin redirect
+      // onAuthStateChanged will handle user state update and admin redirect logic
       console.log("Firebase AuthProvider: signInWithGoogle successful.");
     } catch (error) {
       console.error("Error during Google Sign-In:", error);
-      // Potentially show a toast to the user
-      setLoading(false); // Ensure loading is false on error
+      // Potentially show a toast to the user for sign-in errors
+      setLoading(false); 
     }
   };
 
@@ -90,7 +88,6 @@ export function FirebaseAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // This initial loading state is important to prevent premature rendering or redirects
   if (loading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
@@ -114,5 +111,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
