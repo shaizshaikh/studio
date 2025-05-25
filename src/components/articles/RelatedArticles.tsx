@@ -1,22 +1,33 @@
-
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { suggestRelatedArticles, type SuggestRelatedArticlesOutput, type SuggestRelatedArticlesInput } from '@/ai/flows/suggest-related-articles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Zap } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface RelatedArticlesProps {
-  currentArticleSlug: string; // Added to avoid suggesting the current article
+  currentArticleSlug: string;
   currentArticleContent: string;
   currentArticleTags: string[];
 }
 
-export function RelatedArticles({ currentArticleSlug, currentArticleContent, currentArticleTags }: RelatedArticlesProps) {
-  const [related, setRelated] = useState<SuggestRelatedArticlesOutput | null>(null);
+interface SuggestedArticle {
+  title: string;
+  url: string;
+  summary: string;
+}
+
+function isExternal(url: string) {
+  return /^https?:\/\//.test(url);
+}
+
+export function RelatedArticles({
+  currentArticleSlug,
+  currentArticleContent,
+  currentArticleTags,
+}: RelatedArticlesProps) {
+  const [related, setRelated] = useState<SuggestedArticle[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,41 +36,44 @@ export function RelatedArticles({ currentArticleSlug, currentArticleContent, cur
       try {
         setLoading(true);
         setError(null);
-        const input: SuggestRelatedArticlesInput = {
-          articleContent: currentArticleContent.substring(0, 5000), // Truncate for performance/API limits
-          articleTags: currentArticleTags,
-          numberOfSuggestions: 3,
-        };
-        const suggestions = await suggestRelatedArticles(input);
-        // Filter out the current article if it happens to be suggested
-        const filteredSuggestions = suggestions.filter(article => {
-            // Assuming article.url might be a slug or a full URL
-            // This check is basic and might need refinement based on URL structure
-            if (article.url.startsWith('http')) {
-                const slugFromUrl = article.url.substring(article.url.lastIndexOf('/') + 1);
-                return slugFromUrl !== currentArticleSlug;
-            }
-            return article.url !== currentArticleSlug;
+
+        const res = await fetch('/api/related-articles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            articleContent: currentArticleContent.slice(0, 5000),
+            articleTags: currentArticleTags,
+            numberOfSuggestions: 3,
+          }),
         });
-        setRelated(filteredSuggestions);
-      } catch (err) {
-        console.error("Failed to fetch related articles:", err);
-        setError("Could not load related articles at this time.");
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to fetch related articles');
+        }
+
+        const filtered = data.filter((article: SuggestedArticle) => {
+          try {
+            const url = new URL(article.url, 'https://dummy-base.com');
+            const slug = url.pathname.split('/').pop();
+            return slug !== currentArticleSlug;
+          } catch {
+            return true;
+          }
+        });
+
+        setRelated(filtered);
+      } catch (err: any) {
+        console.error('[RelatedArticles Error]', err);
+        setError(err.message || 'Could not load related articles at this time.');
       } finally {
         setLoading(false);
       }
     }
-    if (process.env.GEMINI_API_KEY) { // Only fetch if Gemini API key is likely configured
-        fetchRelated();
-    } else {
-        setLoading(false);
-        console.warn("GEMINI_API_KEY not found, skipping related articles AI suggestions.");
-    }
-  }, [currentArticleContent, currentArticleTags, currentArticleSlug]);
 
-  if (!process.env.GEMINI_API_KEY) {
-    return null; // Don't render the component if the API key isn't set
-  }
+    fetchRelated();
+  }, [currentArticleContent, currentArticleTags, currentArticleSlug]);
 
   if (loading) {
     return (
@@ -95,9 +109,7 @@ export function RelatedArticles({ currentArticleSlug, currentArticleContent, cur
     );
   }
 
-  if (!related || related.length === 0) {
-    return null; // Don't show the section if no related articles are found or error
-  }
+  if (!related || related.length === 0) return null;
 
   return (
     <div className="mt-12 pt-8 border-t">
@@ -109,11 +121,10 @@ export function RelatedArticles({ currentArticleSlug, currentArticleContent, cur
           <Card key={index} className="flex flex-col hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <CardTitle className="text-lg">
-                {/* Check if URL is internal or external. For now, assume external or use slug-like internal. */}
-                <a 
-                  href={article.url.startsWith('http') ? article.url : `/articles/${article.url}`} 
-                  target={article.url.startsWith('http') ? '_blank' : '_self'} 
-                  rel="noopener noreferrer"
+                <a
+                  href={article.url}
+                  target={isExternal(article.url) ? '_blank' : '_self'}
+                  rel={isExternal(article.url) ? 'noopener noreferrer' : undefined}
                   className="hover:text-primary transition-colors"
                 >
                   {article.title}

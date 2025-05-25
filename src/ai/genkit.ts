@@ -1,7 +1,8 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { defineConfig } from '@genkit-ai/core';
+import { googleAI } from '@genkit-ai/googleai';
+import { suggestRelatedArticles } from './flows/suggest-related-articles';
 
-export const ai = genkit({
+export const ai = defineConfig({
   plugins: [googleAI()],
-  model: 'googleai/gemini-2.0-flash',
+  flows: [suggestRelatedArticles],
 });

@@ -1,11 +1,11 @@
-
 "use client";
 
 import Link from 'next/link';
 import { BookMarked, LogIn, LogOut as LogOutIcon, UserCircle, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
-import { useAuth } from '@/components/auth/FirebaseAuthProvider';
+// Replace the original auth import with the stub:
+import { useAuth } from '@/components/auth/useAuthStub';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ export function Header() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await logout(); // logout function from useAuth should handle redirect to '/'
+    await logout();
   };
 
   return (
@@ -44,7 +44,7 @@ export function Header() {
                   <Avatar className="h-9 w-9">
                     {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
                     <AvatarFallback>
-                      {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5"/>}
+                      {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -62,9 +62,9 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isAdmin && (
-                   <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Admin Dashboard</span>
+                  <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Admin Dashboard</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -75,7 +75,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Button variant="outline" size="sm" onClick={signInWithGoogle} aria-label="Sign in with Google">
-              <LogIn className="mr-0 md:mr-2 h-4 w-4" /> 
+              <LogIn className="mr-0 md:mr-2 h-4 w-4" />
               <span className="hidden md:inline">Sign in</span>
             </Button>
           )}

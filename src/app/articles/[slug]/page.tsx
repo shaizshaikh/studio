@@ -1,4 +1,3 @@
-
 import { getArticleBySlug, getArticles, markdownToHtml } from '@/lib/articles';
 import type { Article } from '@/lib/types';
 import { TagBadge } from '@/components/articles/TagBadge';
@@ -9,9 +8,8 @@ import { CalendarDays, Tags, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import type { Metadata } from 'next';
-// Placeholder for a future CommentSection client component
-// import { CommentSection } from '@/components/comments/CommentSection'; // Example, will be created later
 
+// interface remains same
 interface ArticlePageProps {
   params: {
     slug: string;
@@ -25,8 +23,10 @@ export async function generateStaticParams() {
   }));
 }
 
+// Await params here
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
-  const article = await getArticleBySlug(params.slug);
+  const resolvedParams = await params;
+  const article = await getArticleBySlug(resolvedParams.slug);
   if (!article) {
     return {
       title: 'Article Not Found',
@@ -37,23 +37,23 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const articleUrl = siteBaseUrl ? `${siteBaseUrl}/articles/${article.slug}` : `/articles/${article.slug}`;
   
   const publisherLogoUrl = siteBaseUrl 
-    ? `${siteBaseUrl}/images/logo.png` // Assuming you might add a logo.png in public/images
-    : 'https://placehold.co/600x60.png'; // Fallback placeholder
+    ? `${siteBaseUrl}/images/logo.png` 
+    : 'https://placehold.co/600x60.png';
 
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
-    image: article.image ? [article.image] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : undefined), // Assuming default-og-image.png in public/images
+    image: article.image ? [article.image] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : undefined),
     datePublished: new Date(article.date).toISOString(),
     dateModified: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
     author: { 
-      '@type': 'Organization', // Or 'Person' if you add author details
-      name: 'DevOps Digest', // Replace with your blog's name or author name
+      '@type': 'Organization',
+      name: 'DevOps Digest',
     },
     publisher: {
         '@type': 'Organization',
-        name: 'DevOps Digest', // Replace with your blog's name
+        name: 'DevOps Digest',
         logo: {
             '@type': 'ImageObject',
             url: publisherLogoUrl,
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       '@type': 'WebPage',
       '@id': articleUrl,
     },
-    articleBody: article.rawContent, // The raw markdown content for SEO if preferred
+    articleBody: article.rawContent,
   };
 
   return {
@@ -78,15 +78,15 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       images: article.image ? [
         {
           url: article.image,
-          width: 1200, // Standard OG image width
-          height: 630, // Standard OG image height
+          width: 1200,
+          height: 630,
           alt: article.title,
         },
       ] : (siteBaseUrl ? [`${siteBaseUrl}/images/default-og-image.png`] : []),
       type: 'article',
       publishedTime: new Date(article.date).toISOString(),
       modifiedTime: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.date).toISOString(),
-      authors: ['DevOps Digest'], // Or your author name
+      authors: ['DevOps Digest'],
       tags: article.tags,
     },
     twitter: {
@@ -104,15 +104,17 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   };
 }
 
+// Await params here too
 export default async function ArticlePage({ params }: ArticlePageProps) {
-  const article = await getArticleBySlug(params.slug);
+  const resolvedParams = await params;
+  const article = await getArticleBySlug(resolvedParams.slug);
 
   if (!article) {
     notFound();
   }
 
   const finalHtmlContent = article.htmlContent || markdownToHtml(article.rawContent);
-  const metadataResult = await generateMetadata({ params });
+  const metadataResult = await generateMetadata({ params: resolvedParams });
   const structuredDataString = (metadataResult.other as { structuredData: string })?.structuredData;
 
   return (
@@ -180,19 +182,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         currentArticleTags={article.tags} 
       />
 
-      {/* Placeholder for future Comment Section.
-          This section will be made interactive with a Client Component.
-          The CommentSection component would use useAuth() from FirebaseAuthProvider
-          to determine if a user is logged in and allow posting/viewing comments.
-      */}
       <div className="mt-12 pt-8 border-t">
         <h2 className="text-2xl md:text-3xl font-semibold mb-4">Comments</h2>
         <p className="text-muted-foreground">
           Sign in to leave a comment. (Comment functionality coming soon!)
         </p>
-        {/* Example: <CommentSection articleSlug={article.slug} /> */}
       </div>
-
     </article>
   );
 }
